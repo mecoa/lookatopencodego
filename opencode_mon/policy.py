@@ -213,40 +213,48 @@ def diff_policy(current_models, policy_models):
     return {"added": added, "removed": removed, "changed": changed}
 
 
-def update_config_file(config_path, policy, backup=True):
-    """Write the parsed policy into config.json (with a timestamped backup)."""
-    with open(config_path, "r", encoding="utf-8") as fh:
-        config = json.load(fh)
-    original = json.dumps(config, ensure_ascii=False, indent=2)
+def update_policy_file(policy_path, policy, backup=True):
+    """Write the parsed policy into the policy file (gitignored) with backup.
 
-    go_plan = config.setdefault("go_plan", {})
+    The policy file holds `go_plan.limits` and the per-model `models` table,
+    separate from config.json so refreshing never dirties the committed config.
+    """
+    policy_path = os.path.expanduser(policy_path)
+    if os.path.isfile(policy_path):
+        with open(policy_path, "r", encoding="utf-8") as fh:
+            existing = json.load(fh)
+    else:
+        existing = {}
+    original = json.dumps(existing, ensure_ascii=False, indent=2)
+
+    go_plan = existing.setdefault("go_plan", {})
     limits = go_plan.setdefault("limits", {})
     limits.update({k: v for k, v in policy["plan_limits"].items() if v is not None})
 
-    models = config.setdefault("models", {})
+    models = existing.setdefault("models", {})
     before = {k: dict(v) for k, v in models.items()}
     for model_id, entry in policy["models"].items():
-        existing = models.get(model_id) or {}
-        merged = dict(existing)
+        existing_cfg = models.get(model_id) or {}
+        merged = dict(existing_cfg)
         merged.update(entry)
         models[model_id] = merged
 
     bak = None
-    if backup:
-        bak = "%s.bak-%d" % (config_path, int(time.time()))
-        shutil.copyfile(config_path, bak)
-    with open(config_path, "w", encoding="utf-8") as fh:
-        json.dump(config, fh, ensure_ascii=False, indent=2)
+    if backup and os.path.isfile(policy_path):
+        bak = "%s.bak-%d" % (policy_path, int(time.time()))
+        shutil.copyfile(policy_path, bak)
+    with open(policy_path, "w", encoding="utf-8") as fh:
+        json.dump(existing, fh, ensure_ascii=False, indent=2)
 
     return {
-        "backup": bak if backup else None,
+        "backup": bak,
         "diff": diff_policy(before, policy["models"]),
-        "written": original != json.dumps(config, ensure_ascii=False, indent=2),
+        "written": original != json.dumps(existing, ensure_ascii=False, indent=2),
     }
 
 
-def refresh_policy(config, config_path, dry_run=True):
-    """Fetch the latest policy; update config.json unless dry_run."""
+def refresh_policy(config, policy_path, dry_run=True):
+    """Fetch the latest policy; update the policy file unless dry_run."""
     text = fetch_docs(config)
     policy = parse_policy(text)
     result = {
@@ -254,6 +262,7 @@ def refresh_policy(config, config_path, dry_run=True):
         "docs_url": (config.get("policy") or {}).get("docs_url")
         or os.environ.get("OPENCODE_MON_DOCS_URL")
         or DEFAULT_DOCS_URL,
+        "policy_file": os.path.expanduser(policy_path),
         "plan_limits": policy["plan_limits"],
         "models": policy["models"],
     }
@@ -262,5 +271,5 @@ def refresh_policy(config, config_path, dry_run=True):
         result["diff"] = diff_policy(config.models_data, policy["models"])
         return result
     result["dry_run"] = False
-    result["write"] = update_config_file(config_path, policy)
+    result["write"] = update_policy_file(policy_path, policy)
     return result

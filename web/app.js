@@ -455,7 +455,7 @@ function initFilters() {
 
 async function refreshPolicy() {
   const btn = $("#policy-refresh");
-  if (!confirm("从官方文档抓取最新单价/请求额度并更新 config.json？\n（将自动备份原配置）")) return;
+  if (!confirm("从官方文档抓取最新单价/请求额度并更新 policy.json？\n（policy.json 不入 git，自动备份；config.json 不受影响）")) return;
   btn.disabled = true;
   btn.textContent = "更新中…";
   try {
@@ -463,7 +463,7 @@ async function refreshPolicy() {
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || "HTTP " + resp.status);
     const diff = data.write && data.write.diff ? data.write.diff : (data.diff || {});
-    alert("政策已更新。\n\n新增: " + (diff.added || []).join(", ") +
+    alert("政策已更新 (policy.json)。\n\n新增: " + (diff.added || []).join(", ") +
       "\n变更: " + (diff.changed || []).length + " 个模型" +
       "\n移除: " + (diff.removed || []).join(", ") +
       "\n备份: " + ((data.write && data.write.backup) || "无"));

@@ -136,7 +136,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             config = Config(CURRENT_CONFIG_PATH)
             dry_run = query.get("dry_run", ["0"])[0] not in ("0", "false", "no", "")
-            result = policy.refresh_policy(config, CURRENT_CONFIG_PATH, dry_run=dry_run)
+            result = policy.refresh_policy(config, config.policy_path, dry_run=dry_run)
             self._send_json(result)
         except Exception as exc:
             self._send_error_json("internal error: %s" % exc, 500)
@@ -148,6 +148,8 @@ class Handler(BaseHTTPRequestHandler):
         return {
             "plan_limits": config.plan_limits(),
             "models": config.models_data,
+            "policy_file": config.policy_path,
+            "policy_source": config.policy_source,
             "docs_url": docs_url,
             "generated_at": int(time.time() * 1000),
         }

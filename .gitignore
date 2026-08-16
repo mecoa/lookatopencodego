@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
 config.json.bak-*
+policy.json
+policy.json.bak-*
 .DS_Store

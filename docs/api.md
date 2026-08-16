@@ -111,7 +111,7 @@
 - `GET /api/policy`：当前生效政策快照 `{ plan_limits, models, docs_url, generated_at }`。
 - `POST /api/policy/refresh`：抓取官方文档（默认 GitHub `zh-cn/go.mdx`，可用 `policy.docs_url` 或 `OPENCODE_MON_DOCS_URL` 覆盖）解析计划限额、每模型单价与请求额度。
   - `?dry_run=1`：只返回解析结果 + diff，不写盘。
-  - 不带 `dry_run`：写回 `config.json`（先备份为 `config.json.bak-<ts>`），返回 `{ plan_limits, models, diff, write }`。
+  - 不带 `dry_run`：写回 `policy.json`（不入 git，先备份为 `policy.json.bak-<ts>`），返回 `{ plan_limits, models, diff, write }`。
   - CLI 等效命令：`python3 scripts/update_policy.py [--apply] [--config path]`
 
 ## 跨域复用示例（任意语言）

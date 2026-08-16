@@ -14,6 +14,8 @@ DEFAULTS = {
     "active_window_seconds": 90,
     "series_days": 14,
     "go_providers": ["opencode-go"],
+    "policy_file": "policy.json",
+    "policy_default_file": "policy.default.json",
     "account": {
         "enabled": True,
         "api_key": "",
@@ -47,6 +49,7 @@ class Config:
         for key, value in overrides.items() if overrides else []:
             merged[key] = value
         self.data = merged
+        self._load_policy()
         self.models_data = self.data.get("models", {})
         self._model_ids = {self._normalize(k): k for k in self.models_data}
 
@@ -56,6 +59,30 @@ class Config:
             return {}
         with open(path, "r", encoding="utf-8") as fh:
             return json.load(fh)
+
+    def _load_policy(self):
+        """Load plan limits + model pricing from policy file (mutable, gitignored).
+
+        Priority: policy_file (user/generated) -> policy_default_file (committed).
+        Writes always go to policy_file; policy_file path stays in self.policy_path.
+        """
+        primary = os.path.expanduser(self.data.get("policy_file", "policy.json"))
+        self.policy_path = primary
+        self.policy_source = primary
+        data = self._load(primary)
+        if not data:
+            fallback = os.path.expanduser(
+                self.data.get("policy_default_file", "policy.default.json"))
+            data = self._load(fallback)
+            if data:
+                self.policy_source = fallback
+        if data:
+            limits = (data.get("go_plan") or {}).get("limits")
+            if limits:
+                self.data.setdefault("go_plan", {})["limits"] = limits
+            models = data.get("models")
+            if models:
+                self.data["models"] = models
 
     @staticmethod
     def _normalize(model):

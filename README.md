@@ -17,7 +17,7 @@
 | 请求数（每模型） | 官方估算表 | 官方估算表 | 官方估算表 |
 
 > 说明：
-> - 美元值 = token 数 × 官方单价（`config.json` 中 `models` 表），reasoning 按输出计（可配置）。
+> - 美元值 = token 数 × 官方单价（`policy.json` 中 `models` 表），reasoning 按输出计（可配置）。
 > - DB 内 `cost` 是 opencode 内部批发价（约为官方价的 1/2），仅作参考展示。
 > - 免费模型（providerID 非 `opencode-go`，如 `deepseek-v4-flash-free`）不计入套餐额度。
 > - 请求数上限是官方按典型 token 模式给出的**估算值**，实际按真实请求数统计。
@@ -41,7 +41,7 @@ python3 tui.py            # 依赖后端，按 j/k 滚动、Tab 切换、q 退�
 
 ```
 opencode_mon/          # 可复用后端包（零依赖）
-  config.py            # 配置加载：DB路径/限额/单价表/账户/政策
+  config.py            # 配置加载：用户设置 + 政策文件(policy.json)
   db.py                # 只读 SQLite 访问（WAL 并发安全）
   metrics.py           # 额度计算：token×单价 → Go 计价值，窗口聚合
   account.py           # 官方服务器端用量（opencode.ai/zen/go/v1/usage）
@@ -50,16 +50,18 @@ opencode_mon/          # 可复用后端包（零依赖）
 server.py              # 后端入口
 tui.py                 # 终端面板（经 HTTP API 消费后端）
 web/                   # 静态前端（Chart.js 走 CDN，离线时降级）
-scripts/update_policy.py # 从官方文档更新政策到 config.json（CLI）
+scripts/update_policy.py # 从官方文档更新政策到 policy.json（CLI）
 docs/                  # api.md（REST API 文档）+ openapi.json（OpenAPI 3.0）
-config.json            # 官方 20 模型单价 + 请求额度 + 计划限额
+config.json            # 用户设置（入库）
+policy.json            # 政策数据：单价/请求额度/限额（不入库，刷新生成）
+policy.default.json    # 出厂默认政策（入库，policy.json 缺失时兜底）
 ```
 
 ## 更新价格 / 额度
 
 > 推荐用上面的「政策自动更新」从官方文档同步；以下为手动方式（例如官方文档改版导致解析失效时）。
 
-官方价与请求额度可能随新模型发布变动（见 https://opencode.ai/docs/zh-cn/go/ ）。更新 `config.json` 中 `go_plan.limits` 与 `models` 表即可，无需改代码：
+官方价与请求额度可能随新模型发布变动（见 https://opencode.ai/docs/zh-cn/go/ ）。手动改 **`policy.json`**（不入库）中的 `go_plan.limits` 与 `models` 表即可，无需改代码；修改后重启后端生效：
 
 ```jsonc
 "models": {
@@ -86,6 +88,8 @@ config.json            # 官方 20 模型单价 + 请求额度 + 计划限额
 | `go_providers` | `["opencode-go"]` | 计入套餐额度的 provider 列表 |
 | `active_window_seconds` | `90` | 判定"活跃会话"的时间窗 |
 | `series_days` | `14` | 图表默认天数 |
+| `policy_file` | `policy.json` | 政策数据文件（可更新，不入 git） |
+| `policy_default_file` | `policy.default.json` | 出厂默认政策（入库兜底） |
 
 ## 官方用量（跨设备）配置
 
@@ -113,14 +117,16 @@ config.json            # 官方 20 模型单价 + 请求额度 + 计划限额
 
 ## 政策（单价/限额）自动更新
 
-官方单价与请求额度随新模型发布而变化。工具可从官方文档**自动解析并更新** `config.json`（自动备份）：
+官方单价与请求额度随新模型发布而变化。工具可从官方文档**自动解析并更新 `policy.json`**（此文件**不入 git**，刷新不会产生提交噪音；`policy.default.json` 为入库的出厂默认）：
 
 ```bash
 python3 scripts/update_policy.py             # 预览（解析官方文档，显示 diff）
-python3 scripts/update_policy.py --apply     # 写回 config.json（备份为 config.json.bak-<ts>）
+python3 scripts/update_policy.py --apply     # 写回 policy.json（备份为 policy.json.bak-<ts>）
 ```
 
 Web 界面上也有「从官方文档更新政策」按钮；或通过 API：`POST /api/policy/refresh`（`?dry_run=1` 只预览）。
+
+> 政策加载优先级：`policy.json`（可更新）→ `policy.default.json`（兜底）。可在 `config.json` 用 `policy_file` / `policy_default_file` 覆盖路径。
 
 ## REST API
 

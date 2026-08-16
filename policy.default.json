@@ -1,0 +1,287 @@
+{
+  "go_plan": {
+    "limits": {
+      "5h": 12.0,
+      "week": 30.0,
+      "month": 60.0
+    }
+  },
+  "models": {
+    "grok-4.5": {
+      "input": 2.0,
+      "output": 6.0,
+      "cache_read": 0.3,
+      "cache_write": null,
+      "allowance_month": 15.0,
+      "requests": {
+        "5h": 120,
+        "week": 300,
+        "month": 600
+      }
+    },
+    "gpt-5.6-luna": {
+      "tiers": [
+        {
+          "max_total": 272000,
+          "input": 0.2,
+          "output": 1.2,
+          "cache_read": 0.02,
+          "cache_write": 0.25
+        },
+        {
+          "max_total": null,
+          "input": 0.4,
+          "output": 1.8,
+          "cache_read": 0.04,
+          "cache_write": 0.5
+        }
+      ],
+      "allowance_month": 15.0,
+      "requests": {
+        "5h": 2050,
+        "week": 5100,
+        "month": 10250
+      }
+    },
+    "glm-5.3": {
+      "input": 1.4,
+      "output": 4.4,
+      "cache_read": 0.26,
+      "cache_write": null,
+      "allowance_month": 15.0,
+      "requests": {
+        "5h": 220,
+        "week": 540,
+        "month": 1080
+      }
+    },
+    "glm-5.2": {
+      "input": 1.4,
+      "output": 4.4,
+      "cache_read": 0.26,
+      "cache_write": null,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 880,
+        "week": 2150,
+        "month": 4300
+      }
+    },
+    "glm-5.1": {
+      "input": 1.4,
+      "output": 4.4,
+      "cache_read": 0.26,
+      "cache_write": null,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 880,
+        "week": 2150,
+        "month": 4300
+      }
+    },
+    "kimi-k3": {
+      "input": 3.0,
+      "output": 15.0,
+      "cache_read": 0.3,
+      "cache_write": null,
+      "allowance_month": 15.0,
+      "requests": {
+        "5h": 110,
+        "week": 250,
+        "month": 490
+      }
+    },
+    "kimi-k2.7-code": {
+      "input": 0.95,
+      "output": 4.0,
+      "cache_read": 0.19,
+      "cache_write": null,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 1350,
+        "week": 3380,
+        "month": 6750
+      }
+    },
+    "kimi-k2.6": {
+      "input": 0.95,
+      "output": 4.0,
+      "cache_read": 0.16,
+      "cache_write": null,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 1150,
+        "week": 2880,
+        "month": 5750
+      }
+    },
+    "mimo-v2.5": {
+      "input": 0.14,
+      "output": 0.28,
+      "cache_read": 0.0028,
+      "cache_write": null,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 30100,
+        "week": 75200,
+        "month": 150400
+      }
+    },
+    "mimo-v2.5-pro": {
+      "input": 0.435,
+      "output": 0.87,
+      "cache_read": 0.003625,
+      "cache_write": null,
+      "allowance_month": 15.0,
+      "requests": {
+        "5h": 3250,
+        "week": 8150,
+        "month": 16300
+      }
+    },
+    "minimax-m3": {
+      "input": 0.3,
+      "output": 1.2,
+      "cache_read": 0.06,
+      "cache_write": null,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 3200,
+        "week": 8000,
+        "month": 16000
+      }
+    },
+    "minimax-m2.7": {
+      "input": 0.3,
+      "output": 1.2,
+      "cache_read": 0.06,
+      "cache_write": 0.375,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 3400,
+        "week": 8500,
+        "month": 17000
+      }
+    },
+    "minimax-m2.5": {
+      "input": 0.3,
+      "output": 1.2,
+      "cache_read": 0.06,
+      "cache_write": 0.375,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": null,
+        "week": null,
+        "month": null
+      }
+    },
+    "qwen3.8-max": {
+      "input": 2.0,
+      "output": 6.0,
+      "cache_read": 0.25,
+      "cache_write": 2.5,
+      "allowance_month": 15.0,
+      "requests": {
+        "5h": 160,
+        "week": 400,
+        "month": 810
+      }
+    },
+    "qwen3.7-max": {
+      "input": 2.5,
+      "output": 7.5,
+      "cache_read": 0.5,
+      "cache_write": 3.125,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 340,
+        "week": 840,
+        "month": 1690
+      }
+    },
+    "qwen3.7-plus": {
+      "tiers": [
+        {
+          "max_total": 256000,
+          "input": 0.4,
+          "output": 1.6,
+          "cache_read": 0.04,
+          "cache_write": 0.5
+        },
+        {
+          "max_total": null,
+          "input": 1.2,
+          "output": 4.8,
+          "cache_read": 0.12,
+          "cache_write": 1.5
+        }
+      ],
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 4300,
+        "week": 10800,
+        "month": 21600
+      }
+    },
+    "qwen3.6-plus": {
+      "tiers": [
+        {
+          "max_total": 256000,
+          "input": 0.5,
+          "output": 3.0,
+          "cache_read": 0.05,
+          "cache_write": 0.625
+        },
+        {
+          "max_total": null,
+          "input": 2.0,
+          "output": 6.0,
+          "cache_read": 0.2,
+          "cache_write": 2.5
+        }
+      ],
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 3300,
+        "week": 8200,
+        "month": 16300
+      }
+    },
+    "deepseek-v4-pro": {
+      "input": 0.435,
+      "output": 0.87,
+      "cache_read": 0.003625,
+      "cache_write": null,
+      "allowance_month": 15.0,
+      "requests": {
+        "5h": 3450,
+        "week": 8550,
+        "month": 17150
+      }
+    },
+    "deepseek-v4-flash": {
+      "input": 0.14,
+      "output": 0.28,
+      "cache_read": 0.0028,
+      "cache_write": null,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 31650,
+        "week": 79050,
+        "month": 158150
+      }
+    },
+    "hy3": {
+      "input": 0.14,
+      "output": 0.58,
+      "cache_read": 0.035,
+      "cache_write": null,
+      "allowance_month": 60.0,
+      "requests": {
+        "5h": 4300,
+        "week": 10750,
+        "month": 21500
+      }
+    }
+  }
+}
