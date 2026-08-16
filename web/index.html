@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenCode Go 实时用量监控</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header>
+  <div class="brand">OpenCode Go <span>实时用量监控</span></div>
+  <div class="status" id="status">连接中…</div>
+</header>
+
+<nav id="tabs">
+  <button class="tab active" data-tab="overview">额度总览</button>
+  <button class="tab" data-tab="live">实时</button>
+  <button class="tab" data-tab="chart">图表</button>
+  <button class="tab" data-tab="sessions">会话明细</button>
+</nav>
+
+<main>
+  <section id="tab-overview" class="tabpane active">
+    <div id="account-note" class="muted" style="margin-bottom:8px"></div>
+    <div class="cards" id="account-cards"></div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>本地估算（仅本机 opencode）</h2>
+        <span class="muted" id="local-warn"></span>
+      </div>
+      <div class="cards" id="plan-cards"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>模型额度（值 / 请求数）</h2>
+        <label class="filters">
+          <span>显示：</span>
+          <select id="models-filter"><option value="all">全部模型</option></select>
+          <button id="policy-refresh" class="btn" title="从官方文档重新抓取单价与请求额度，更新 config.json">从官方文档更新政策</button>
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table id="models-table">
+          <thead><tr>
+            <th>模型</th>
+            <th>5h 请求</th><th>5h 值</th>
+            <th>周 请求</th><th>周 值</th>
+            <th>月 请求</th><th>月 值</th>
+            <th>月额度</th><th>瓶颈</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-live" class="tabpane">
+    <div class="panel">
+      <div class="panel-head"><h2>活跃会话</h2></div>
+      <div id="active-sessions"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>实时事件流</h2><span class="muted" id="seq-label"></span></div>
+      <div id="live-feed" class="feed"></div>
+    </div>
+  </section>
+
+  <section id="tab-chart" class="tabpane">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>每日用量趋势</h2>
+        <label class="filters">
+          <span>模型：</span>
+          <select id="chart-model"><option value="all">全部</option></select>
+          <span>天数：</span>
+          <select id="chart-days">
+            <option value="7">7</option><option value="14" selected>14</option>
+            <option value="30">30</option>
+          </select>
+        </label>
+      </div>
+      <div class="chart-box"><canvas id="chart-value"></canvas></div>
+      <div class="chart-box"><canvas id="chart-tokens"></canvas></div>
+      <div class="muted" id="chart-fallback"></div>
+    </div>
+  </section>
+
+  <section id="tab-sessions" class="tabpane">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>会话明细</h2>
+        <label class="filters">
+          <span>窗口：</span>
+          <select id="sess-window">
+            <option value="5h">5小时</option>
+            <option value="week">本周</option>
+            <option value="month_rolling" selected>近30天</option>
+            <option value="month">本月</option>
+          </select>
+          <span>模型：</span>
+          <select id="sess-model"><option value="all">全部</option></select>
+          <input id="sess-search" type="search" placeholder="搜索标题/会话ID" />
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table id="sessions-table">
+          <thead><tr>
+            <th data-key="last_ts" data-dir="-1">最近活动</th>
+            <th data-key="title">标题</th>
+            <th data-key="model">模型</th>
+            <th data-key="agent">Agent</th>
+            <th data-key="requests">请求数</th>
+            <th data-key="value">Go值</th>
+            <th data-key="cost">DB成本</th>
+            <th data-key="tokens.in">输入</th>
+            <th data-key="tokens.out">输出</th>
+            <th data-key="tokens.cache_read">缓存读</th>
+            <th data-key="duration_ms">时长</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

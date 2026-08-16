@@ -1,0 +1,171 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OpenCode Go Usage Monitor API",
+    "description": "监控 OpenCode Go 订阅实时用量：官方服务器端额度 + 本地每模型/每会话明细。\n\n- 官方额度：GET /zen/go/v1/usage（服务端权威，跨设备）\n- 本地明细：opencode SQLite 库只读聚合\n- 前端：Web 仪表盘 + 终端 TUI 均消费本 API",
+    "version": "1.0.0",
+    "contact": { "url": "https://github.com/anomalyco/opencode" }
+  },
+  "servers": [{ "url": "http://127.0.0.1:8932" }],
+  "paths": {
+    "/api/overview": {
+      "get": {
+        "summary": "总览：今日/近30天统计、计划额度、活跃会话、官方用量",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Overview" }
+              }
+            }
+          },
+          "503": { "description": "opencode 数据库不存在" }
+        }
+      }
+    },
+    "/api/models": {
+      "get": {
+        "summary": "每模型额度（可指定单模型）",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "description": "模型 ID（如 deepseek-v4-flash）；省略返回全部",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "全部模型（未指定 model）" },
+          "404": { "description": "指定模型不存在" }
+        }
+      }
+    },
+    "/api/sessions": {
+      "get": {
+        "summary": "会话明细（本地 DB）",
+        "parameters": [
+          { "name": "window", "in": "query", "schema": { "type": "string", "default": "month_rolling", "enum": ["5h", "week_rolling", "week", "month_rolling", "month"] } },
+          { "name": "model", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 200 } }
+        ],
+        "responses": { "200": { "description": "会话列表，按最近活动倒序" } }
+      }
+    },
+    "/api/series": {
+      "get": {
+        "summary": "按天趋势（供图表）",
+        "parameters": [
+          { "name": "days", "in": "query", "schema": { "type": "integer", "default": 14 } },
+          { "name": "model", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "每天 value/cost/requests/tokens" } }
+      }
+    },
+    "/api/live": {
+      "get": {
+        "summary": "实时事件增量（轮询）",
+        "description": "基于 event 表递增 seq；客户端保存上次 seq 轮询即可获得实时流",
+        "parameters": [
+          { "name": "since", "in": "query", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "{ seq, events: [...] }" } }
+      }
+    },
+    "/api/account": {
+      "get": {
+        "summary": "官方服务器端用量（强制刷新缓存）",
+        "responses": { "200": { "description": "官方 5h/周/月 百分比与重置时间" } }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "summary": "运行配置：计划限额、模型表、账户状态",
+        "responses": { "200": { "description": "配置快照" } }
+      }
+    },
+    "/api/policy": {
+      "get": {
+        "summary": "当前政策：计划限额 + 每模型单价/请求额度",
+        "responses": { "200": { "description": "policy 快照" } }
+      }
+    },
+    "/api/policy/refresh": {
+      "post": {
+        "summary": "从官方文档抓取最新政策并更新 config.json",
+        "description": "dry_run=1 只预览不落盘；否则写回 config.json 并备份为 config.json.bak-<ts>",
+        "parameters": [
+          { "name": "dry_run", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": { "200": { "description": "{ plan_limits, models, diff, write }" } }
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "summary": "本规范文件（JSON）",
+        "responses": { "200": { "description": "OpenAPI 3.0 规范" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "WindowUsage": {
+        "type": "object",
+        "properties": {
+          "value": { "type": "number", "description": "Go 计价值 (USD)" },
+          "cost": { "type": "number", "description": "DB 内 opencode 批发成本 (USD)" },
+          "limit": { "type": "number", "nullable": true },
+          "pct": { "type": "number", "nullable": true },
+          "requests": { "type": "integer" }
+        }
+      },
+      "Plan": {
+        "type": "object",
+        "properties": {
+          "5h": { "$ref": "#/components/schemas/WindowUsage" },
+          "week_rolling": { "$ref": "#/components/schemas/WindowUsage" },
+          "week": { "$ref": "#/components/schemas/WindowUsage" },
+          "month_rolling": { "$ref": "#/components/schemas/WindowUsage" },
+          "month": { "$ref": "#/components/schemas/WindowUsage" }
+        }
+      },
+      "OfficialWindow": {
+        "type": "object",
+        "properties": {
+          "percent": { "type": "number" },
+          "resets_at": { "type": "string", "nullable": true },
+          "used": { "type": "number", "nullable": true },
+          "limit": { "type": "number", "nullable": true },
+          "remaining": { "type": "number", "nullable": true }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "configured": { "type": "boolean" },
+          "key_source": { "type": "string", "enum": ["config", "file", "env", "auth.json", null] },
+          "windows": {
+            "type": "object",
+            "properties": {
+              "rolling": { "$ref": "#/components/schemas/OfficialWindow" },
+              "weekly": { "$ref": "#/components/schemas/OfficialWindow" },
+              "monthly": { "$ref": "#/components/schemas/OfficialWindow" }
+            }
+          }
+        }
+      },
+      "Overview": {
+        "type": "object",
+        "properties": {
+          "now": { "type": "integer" },
+          "today": { "type": "object" },
+          "total_30d": { "type": "object" },
+          "plan": { "$ref": "#/components/schemas/Plan" },
+          "account": { "$ref": "#/components/schemas/Account" },
+          "active_sessions": { "type": "array", "items": { "type": "object" } }
+        }
+      }
+    }
+  }
+}
