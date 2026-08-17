@@ -10,12 +10,8 @@ import json
 import os
 import threading
 import time
-import urllib.request
 
-DEFAULT_UA = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-)
+from .netutil import DEFAULT_UA, open_url
 
 _cache = {}
 _cache_lock = threading.Lock()
@@ -106,9 +102,8 @@ def _http_get(config, key):
         "Origin": "https://opencode.ai",
         "Referer": "https://opencode.ai/",
     }
-    req = urllib.request.Request(url, headers=headers)
     timeout = float(account.get("timeout_seconds", 15))
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with open_url(url, timeout, headers=headers) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 

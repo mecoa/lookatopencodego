@@ -128,6 +128,8 @@ Web 界面上也有「从官方文档更新政策」按钮；或通过 API：`PO
 
 > 政策加载优先级：`policy.json`（可更新）→ `policy.default.json`（兜底）。可在 `config.json` 用 `policy_file` / `policy_default_file` 覆盖路径。
 
+> 网络鲁棒性：抓取默认走 `raw.githubusercontent.com`，失败后自动回退 jsDelivr CDN 镜像（`cdn.jsdelivr.net`），并对瞬时错误重试（IPv4 优先，规避 IPv6 路由不通导致的卡死）。可在 `config.json` 的 `policy` 节配置 `docs_url` / `mirrors`（列表）/ `timeout_seconds`（默认 15），或用环境变量 `OPENCODE_MON_DOCS_URL` / `OPENCODE_MON_DOCS_MIRRORS` 覆盖。抓取/解析失败不会覆盖 `policy.json`，只会给出可读的错误提示。
+
 ## REST API
 
 所有端点见 **[docs/api.md](docs/api.md)**，机器可读规范见 `GET /api/openapi.json`（`docs/openapi.json`）。简要：

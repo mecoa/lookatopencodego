@@ -25,8 +25,15 @@ def main():
     ap.add_argument("--json", action="store_true", help="输出原始 JSON")
     args = ap.parse_args()
 
-    cfg = Config(args.config)
-    result = policy.refresh_policy(cfg, cfg.policy_path, dry_run=not args.apply)
+    try:
+        cfg = Config(args.config)
+        result = policy.refresh_policy(cfg, cfg.policy_path, dry_run=not args.apply)
+    except policy.PolicyError as exc:
+        print("更新失败: %s" % exc, file=sys.stderr)
+        sys.exit(1)
+    except Exception as exc:
+        print("更新失败: %s" % exc, file=sys.stderr)
+        sys.exit(1)
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

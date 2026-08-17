@@ -10,31 +10,80 @@ import os
 import re
 import shutil
 import time
-import urllib.request
+import urllib.error
+
+from .netutil import open_url
 
 DEFAULT_DOCS_URL = (
     "https://raw.githubusercontent.com/anomalyco/opencode/dev/"
     "packages/web/src/content/docs/zh-cn/go.mdx"
 )
-DEFAULT_UA = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+DEFAULT_MIRROR_URL = (
+    "https://cdn.jsdelivr.net/gh/anomalyco/opencode@dev/"
+    "packages/web/src/content/docs/zh-cn/go.mdx"
 )
+FETCH_RETRIES = 2
+FETCH_BACKOFF = 1.0
+
+
+class PolicyError(Exception):
+    """Raised when official policy docs cannot be fetched or parsed."""
+
+
+def _read_local(url):
+    path = url[len("file://"):] if url.startswith("file://") else url
+    with open(path, "r", encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _http_get_text(url, timeout):
+    with open_url(url, timeout) as resp:
+        return resp.read().decode("utf-8")
+
+
+def _docs_urls(config):
+    policy_cfg = config.get("policy") or {}
+    primary = policy_cfg.get("docs_url") or os.environ.get("OPENCODE_MON_DOCS_URL") or DEFAULT_DOCS_URL
+    urls = [primary]
+    if primary == DEFAULT_DOCS_URL:
+        mirrors = policy_cfg.get("mirrors")
+        if not isinstance(mirrors, list):
+            mirrors = [m for m in os.environ.get("OPENCODE_MON_DOCS_MIRRORS", "").split() if m]
+        urls.extend([m for m in mirrors if m and m != primary])
+        if DEFAULT_MIRROR_URL not in urls:
+            urls.append(DEFAULT_MIRROR_URL)
+    return urls
 
 
 def fetch_docs(config):
-    """Return the docs markdown text from the configured URL or a local file."""
+    """Return the docs markdown text from the configured URL or a local file.
+
+    Tries the configured URL first, then configured mirrors, then a CDN
+    fallback. Transient network errors are retried with backoff. On total
+    failure raises PolicyError with an actionable message.
+    """
     policy_cfg = config.get("policy") or {}
-    url = policy_cfg.get("docs_url") or os.environ.get("OPENCODE_MON_DOCS_URL") or DEFAULT_DOCS_URL
-    if url.startswith("file://"):
-        with open(url[len("file://"):], "r", encoding="utf-8") as fh:
-            return fh.read()
-    if os.path.isfile(url):
-        with open(url, "r", encoding="utf-8") as fh:
-            return fh.read()
-    req = urllib.request.Request(url, headers={"User-Agent": DEFAULT_UA, "Accept": "text/plain,*/*"})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return resp.read().decode("utf-8")
+    timeout = float(policy_cfg.get("timeout_seconds", 15))
+    last_err = None
+    for url in _docs_urls(config):
+        if url.startswith("file://") or os.path.isfile(url):
+            try:
+                return _read_local(url)
+            except OSError as exc:
+                last_err = exc
+                continue
+        for attempt in range(FETCH_RETRIES):
+            try:
+                return _http_get_text(url, timeout)
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                last_err = exc
+                if attempt < FETCH_RETRIES - 1:
+                    time.sleep(FETCH_BACKOFF * (attempt + 1))
+    raise PolicyError(
+        "无法从官方文档抓取政策（%s）。请检查网络/代理；"
+        "或设置 OPENCODE_MON_DOCS_URL / OPENCODE_MON_DOCS_MIRRORS 指向可访问的镜像，"
+        "或改用 file:// 指向本地文档副本。" % last_err
+    )
 
 
 def parse_markdown_tables(text):
@@ -255,8 +304,17 @@ def update_policy_file(policy_path, policy, backup=True):
 
 def refresh_policy(config, policy_path, dry_run=True):
     """Fetch the latest policy; update the policy file unless dry_run."""
-    text = fetch_docs(config)
-    policy = parse_policy(text)
+    try:
+        text = fetch_docs(config)
+        policy = parse_policy(text)
+    except PolicyError:
+        raise
+    except Exception as exc:
+        raise PolicyError("政策文档解析失败（官方文档可能改版）: %s" % exc) from exc
+    if not policy["models"] or not policy["plan_limits"]:
+        raise PolicyError(
+            "从官方文档解析到 0 个模型/限额，已中止（官方文档可能改版）。"
+            "请人工核对后手动编辑 policy.json。")
     result = {
         "fetched_at": int(time.time() * 1000),
         "docs_url": (config.get("policy") or {}).get("docs_url")
